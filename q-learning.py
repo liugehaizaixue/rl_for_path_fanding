@@ -1,12 +1,12 @@
 import numpy as np
 from env import make_env
 
-env = make_env(seed=0,if_render=False)
+env = make_env(seed=11,if_render=False)
 
 # 定义参数
 alpha = 0.1  # 学习率
 gamma = 0.90  # 折扣因子
-epsilon = 0.5  # ε-greedy策略中的ε
+epsilon = 0.6  # ε-greedy策略中的ε
 num_episodes = 1e4
 
 class QLearningAgent:
@@ -58,7 +58,7 @@ def eval():
     pos = policy.get_pos(obs)
     while True:
         action = np.argmax(policy.q_table[pos[0]][pos[1]])
-        next_obs , reward , done , info= env.step(action)
+        next_obs , reward , done , truncated, info= env.step(action)
         next_pos = policy.get_pos(next_obs)
         pos = next_pos
         if done:  # 到达目的地

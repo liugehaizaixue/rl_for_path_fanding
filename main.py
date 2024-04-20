@@ -12,11 +12,11 @@ map_str = MAPS_REGISTRY[random_key]
 map_array = np.array([[1 if c == '#' else 0 for c in line] for line in map_str.strip().split('\n')])
 
 env = Env(map_array)
-obs , info = env.reset()
+obs , info = env.reset(if_render=True)
 
 
 while True:
     action = random.randint(0, 3)
-    obs , reward , done , info = env.step(action)
+    obs , reward , done , truncated, info = env.step(action)
 
 

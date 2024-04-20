@@ -19,6 +19,8 @@ class Env:
         self.action_size = 4
         self.obs_size = 65
         self.seed = seed
+        self.max_episode_steps = 512
+        self.current_step = 0
         """ 
         ---------------> y
         |
@@ -39,6 +41,8 @@ class Env:
             return [0,1]
 
     def step(self, action):
+        self.current_step = self.current_step+1
+
         _action = self.get_action(action)
         
         if self.pos[0]+_action[0] >= 0 and self.pos[0]+_action[0] < self.map_size[0] and \
@@ -61,14 +65,21 @@ class Env:
         else:
             done = False
         
+        if self.current_step > self.max_episode_steps:
+            truncated = True
+        else:
+            truncated = False
+
         info = ""
-        obs = [self.map_array]
+        obs = np.expand_dims(self.map_array, axis=0)
         if self.if_render:
             self.step_render()
-        return obs , reward , done , info
+        return obs , reward , done , truncated, info
 
 
-    def reset(self, if_render=False):
+    def reset(self,seed=0, if_render=False):
+        self.current_step = 0
+        self.seed = seed
         self.if_render = if_render
         start , target = utils.generate_start_target(self.map_array,self.seed)
         self.map_array = deepcopy(self.original_map)
@@ -77,7 +88,7 @@ class Env:
         self.pos = start
         self.target = target
 
-        obs = [self.map_array]
+        obs = np.expand_dims(self.map_array, axis=0)
         info = ""
         if self.if_render:
             self.init_render()
@@ -94,9 +105,12 @@ class Env:
         self.rendering.set_array(self.map_array)
         # 刷新图形
         plt.pause(1)
+    
+    def close(self):
+        pass
 
 
-def make_env(seed, if_render = False):
+def make_env(seed=0, if_render = False):
     random_key = random.choice(list(MAPS_REGISTRY.keys()))
     map_str = MAPS_REGISTRY[random_key]
     map_array = np.array([[1 if c == '#' else 0 for c in line] for line in map_str.strip().split('\n')])
