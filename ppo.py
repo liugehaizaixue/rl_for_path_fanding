@@ -288,3 +288,4 @@ if __name__ == "__main__":
 
     envs.close()
     writer.close()
+    torch.save(agent,'save.pt')
