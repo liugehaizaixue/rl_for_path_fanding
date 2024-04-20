@@ -72,6 +72,10 @@ class Env:
 
         info = ""
         obs = np.expand_dims(self.map_array, axis=0)
+
+        if done or truncated:
+            obs , info  = self.reset(self.seed+1)
+
         if self.if_render:
             self.step_render()
         return obs , reward , done , truncated, info
