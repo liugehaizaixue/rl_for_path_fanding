@@ -22,7 +22,7 @@ action_space_shape = (
         if isinstance(env.action_space, gym.spaces.Discrete)
         else tuple(env.action_space.nvec)
     )
-agent = Agent(env.action_space).to('cuda')
+agent = Agent(env.action_space, env.observation_space).to('cuda')
 agent.load_state_dict(checkpoint["model_weights"])
 
 total_reward = 0

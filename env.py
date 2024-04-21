@@ -31,7 +31,7 @@ class PathFindingEnv(gym.Env):
         self.max_episode_steps = 512
         self.current_step = 0
         self.action_space = spaces.Discrete(4)
-        self.observation_space = spaces.Box(0, 3.0, shape=(1, 64, 64), dtype=np.float32)
+        self.observation_space = spaces.Box(0, 3.0, shape=(1, self.map_size[0], self.map_size[1]), dtype=np.float32)
         """ 
         ---------------> y
         |

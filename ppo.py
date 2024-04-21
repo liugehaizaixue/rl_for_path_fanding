@@ -95,17 +95,19 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
 
 
 class Agent(nn.Module):
-    def __init__(self, action_space_shape):
+    def __init__(self, action_space_shape, observation_space_shape):
         super().__init__()
+        h = observation_space_shape.shape[1]
+        w = observation_space_shape.shape[2]
         self.network = nn.Sequential(
-            layer_init(nn.Conv2d(1, 32, 8, stride=4)),
+            layer_init(nn.Conv2d(1, 32, 3, stride=1, padding=1)),
             nn.ReLU(),
-            layer_init(nn.Conv2d(32, 64, 4, stride=2)),
+            layer_init(nn.Conv2d(32, 64, 3, stride=1, padding=1)),
             nn.ReLU(),
-            layer_init(nn.Conv2d(64, 64, 3, stride=1)),
+            layer_init(nn.Conv2d(64, 64, 3, stride=1, padding=1)),
             nn.ReLU(),
             nn.Flatten(),
-            layer_init(nn.Linear(64 * 4 * 4, 512)),
+            layer_init(nn.Linear(64 * h * w, 512)),
             nn.ReLU(),
         )
         self.actor = layer_init(nn.Linear(512, action_space_shape.n), std=0.01)
@@ -163,7 +165,7 @@ if __name__ == "__main__":
     )
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
-    agent = Agent(envs.single_action_space).to(device)
+    agent = Agent(envs.single_action_space, envs.single_observation_space).to(device)
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # ALGO Logic: Storage setup
