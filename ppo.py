@@ -39,8 +39,8 @@ class Args:
     """the wandb's project name"""
     wandb_entity: str = None
     """the entity (team) of wandb's project"""
-    capture_video: bool = False
-    """whether to capture videos of the agent performances (check out `videos` folder)"""
+    save_model: bool = True
+    """whether to save model into the `runs/{run_name}` folder"""
 
     # Algorithm specific arguments
     env_id: str = "PathFinding-v0"
@@ -188,6 +188,7 @@ if __name__ == "__main__":
     next_done = torch.zeros(args.num_envs).to(device)
 
     for iteration in range(1, args.num_iterations + 1):
+        print(f"current iteration : {iteration} / {args.num_iterations + 1}")
         # Annealing the rate if instructed to do so.
         if args.anneal_lr:
             frac = 1.0 - (iteration - 1.0) / args.num_iterations
@@ -312,6 +313,15 @@ if __name__ == "__main__":
         writer.add_scalar("losses/explained_variance", explained_var, global_step)
         print("SPS:", int(global_step / (time.time() - start_time)))
         writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
+
+    if args.save_model:
+        model_path = f"runs/{run_name}/{args.exp_name}.cleanrl_model"
+        model_data = {
+            "model_weights": agent.state_dict(),
+            "args": vars(args),
+        }
+        torch.save(model_data, model_path)
+        print(f"model saved to {model_path}")
 
     envs.close()
     writer.close()
