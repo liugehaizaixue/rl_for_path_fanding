@@ -1,4 +1,7 @@
+gymnasium==0.29.0
 matplotlib==3.5.3
-numpy==1.21.6
+numpy==1.24.4
 PyYAML==6.0.1
-PyYAML==6.0.1
+torch==2.2.0+cu121
+tyro==0.5.10
+wandb==0.13.11
