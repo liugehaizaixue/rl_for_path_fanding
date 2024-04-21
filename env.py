@@ -119,14 +119,6 @@ class PathFindingEnv(gym.Env):
         plt.close()
         
 
-
-def make_env():
-    random_key = random.choice(list(MAPS_REGISTRY.keys()))
-    map_str = MAPS_REGISTRY[random_key]
-    map_array = np.array([[1 if c == '#' else 0 for c in line] for line in map_str.strip().split('\n')])
-    return PathFindingEnv(map_array=map_array)
-
-
 def get_map_array():
     map_str = MAPS_REGISTRY['sc1-AcrosstheCape']
     map_array = np.array([[1 if c == '#' else 0 for c in line] for line in map_str.strip().split('\n')])

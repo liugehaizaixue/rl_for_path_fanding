@@ -38,9 +38,9 @@ class Args:
     # Algorithm specific arguments
     env_id: str = "PathFinding-v0"
     """the id of the environment"""
-    total_timesteps: int = 10000000
+    total_timesteps: int = int(1e7)
     """total timesteps of the experiments"""
-    learning_rate: float = 2.5e-4
+    learning_rate: float = 1e-4
     """the learning rate of the optimizer"""
     num_envs: int = 8
     """the number of parallel game environments"""
@@ -95,7 +95,7 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
 
 
 class Agent(nn.Module):
-    def __init__(self, envs):
+    def __init__(self, action_space_shape):
         super().__init__()
         self.network = nn.Sequential(
             layer_init(nn.Conv2d(1, 32, 8, stride=4)),
@@ -108,7 +108,7 @@ class Agent(nn.Module):
             layer_init(nn.Linear(64 * 4 * 4, 512)),
             nn.ReLU(),
         )
-        self.actor = layer_init(nn.Linear(512, envs.single_action_space.n), std=0.01)
+        self.actor = layer_init(nn.Linear(512, action_space_shape.n), std=0.01)
         self.critic = layer_init(nn.Linear(512, 1), std=1)
 
     def get_value(self, x):
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     )
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
-    agent = Agent(envs).to(device)
+    agent = Agent(envs.single_action_space).to(device)
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # ALGO Logic: Storage setup
