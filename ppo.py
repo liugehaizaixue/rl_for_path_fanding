@@ -3,7 +3,7 @@ import os
 import random
 import time
 from dataclasses import dataclass
-from env import make_env
+
 import gymnasium as gym
 import numpy as np
 import torch
@@ -12,7 +12,16 @@ import torch.optim as optim
 import tyro
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
-from wrapper import MultiEnv
+
+from stable_baselines3.common.atari_wrappers import (  # isort:skip
+    ClipRewardEnv,
+    EpisodicLifeEnv,
+    FireResetEnv,
+    MaxAndSkipEnv,
+    NoopResetEnv,
+)
+from env import get_map_array
+
 
 @dataclass
 class Args:
@@ -34,7 +43,7 @@ class Args:
     """whether to capture videos of the agent performances (check out `videos` folder)"""
 
     # Algorithm specific arguments
-    env_id: str = "BreakoutNoFrameskip-v4"
+    env_id: str = "PathFinding-v0"
     """the id of the environment"""
     total_timesteps: int = 10000000
     """total timesteps of the experiments"""
@@ -78,6 +87,13 @@ class Args:
     """the number of iterations (computed in runtime)"""
 
 
+def make_env(env_id, map_array, render_mode=None):
+    def thunk():
+        env = gym.make(env_id, map_array=map_array, render_mode=render_mode)
+        return gym.wrappers.RecordEpisodeStatistics(env)
+
+    return thunk
+
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.orthogonal_(layer.weight, std)
@@ -120,7 +136,18 @@ if __name__ == "__main__":
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.num_iterations = args.total_timesteps // args.batch_size
     run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"
+    if args.track:
+        import wandb
 
+        wandb.init(
+            project=args.wandb_project_name,
+            entity=args.wandb_entity,
+            sync_tensorboard=True,
+            config=vars(args),
+            name=run_name,
+            monitor_gym=True,
+            save_code=True,
+        )
     writer = SummaryWriter(f"runs/{run_name}")
     writer.add_text(
         "hyperparameters",
@@ -136,8 +163,9 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
     # env setup
-    envs = MultiEnv(
-        [make_env(seed=0) for i in range(args.num_envs)],
+    map_array = get_map_array()
+    envs = gym.vector.SyncVectorEnv(
+        [make_env(args.env_id, map_array) for i in range(args.num_envs)],
     )
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
@@ -160,7 +188,6 @@ if __name__ == "__main__":
     next_done = torch.zeros(args.num_envs).to(device)
 
     for iteration in range(1, args.num_iterations + 1):
-        print(f"current iteration {str(iteration)} / {str(args.num_iterations)}")
         # Annealing the rate if instructed to do so.
         if args.anneal_lr:
             frac = 1.0 - (iteration - 1.0) / args.num_iterations
@@ -288,4 +315,3 @@ if __name__ == "__main__":
 
     envs.close()
     writer.close()
-    torch.save(agent,'save.pt')

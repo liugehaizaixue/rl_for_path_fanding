@@ -127,6 +127,11 @@ def make_env():
     return PathFindingEnv(map_array=map_array)
 
 
+def get_map_array():
+    map_str = MAPS_REGISTRY['sc1-AcrosstheCape']
+    map_array = np.array([[1 if c == '#' else 0 for c in line] for line in map_str.strip().split('\n')])
+    return map_array
+
 if __name__ == "__main__":
     random_key = random.choice(list(MAPS_REGISTRY.keys()))
     map_str = MAPS_REGISTRY[random_key]
