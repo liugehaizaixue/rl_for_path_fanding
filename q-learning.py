@@ -1,12 +1,15 @@
 import numpy as np
-from env import make_env
+from env import get_map_array
+import gymnasium as gym
 
-env = make_env(seed=11,if_render=False)
+map_array = get_map_array()
+env = gym.make("PathFinding-v0", map_array = map_array)
+obs, _ = env.reset()
 
 # 定义参数
 alpha = 0.1  # 学习率
-gamma = 0.90  # 折扣因子
-epsilon = 0.6  # ε-greedy策略中的ε
+gamma = 0.99  # 折扣因子
+epsilon = 0.3  # ε-greedy策略中的ε
 num_episodes = 1e4
 
 class QLearningAgent:
@@ -41,27 +44,29 @@ policy = QLearningAgent(env.map_size, env.action_size, alpha, gamma, epsilon)
 
 def train():
     for episode in range(int(num_episodes)):
-        print(episode)
+        print(f"current episode: {episode} / {num_episodes}")
         obs , info  = env.reset()
         pos = policy.get_pos(obs)
         while True:
             action = policy.choose_action(pos)
-            next_obs , reward , done , info = env.step(action)
+            next_obs , reward , done , truncated , info = env.step(action)
             next_pos = policy.get_pos(next_obs)
             policy.update_q_table(pos, action, reward, next_pos)
             pos = next_pos
-            if done:  # 到达目的地
+            if done:  
                 break
 
 def eval():
-    obs , info = env.reset(if_render=True)
+    obs , info = env.reset()
+    env.render()
     pos = policy.get_pos(obs)
     while True:
         action = np.argmax(policy.q_table[pos[0]][pos[1]])
         next_obs , reward , done , truncated, info= env.step(action)
+        env.render()
         next_pos = policy.get_pos(next_obs)
         pos = next_pos
-        if done:  # 到达目的地
+        if done or truncated:  
             break
 
 train()
