@@ -7,7 +7,7 @@ from ppo import Agent , make_env
 import gymnasium as gym
 
 # Load checkpoint
-checkpoint = torch.load("./ppo.cleanrl_model")
+checkpoint = torch.load("./models/ppo.cleanrl_model")
 args = checkpoint["args"]
 args = type("Args", (), args)
 

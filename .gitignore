@@ -2,4 +2,4 @@ __pycache__
 runs
 test.py
 *.pt
-*.cleanrl_model
+runs
