@@ -46,7 +46,7 @@ class Args:
     """the number of parallel game environments"""
     num_steps: int = 128
     """the number of steps to run in each environment per policy rollout"""
-    anneal_lr: bool = True
+    anneal_lr: bool = False # 改为false看看 ？
     """Toggle learning rate annealing for policy and value networks"""
     gamma: float = 0.99
     """the discount factor gamma"""
@@ -118,7 +118,7 @@ class Agent(nn.Module):
 
     def get_action_and_value(self, x, action=None):
         hidden = self.network(x / 255.0)
-        logits = self.actor(hidden)
+        logits = self.actor(hidden)  # logits 为未归一化的概率值
         probs = Categorical(logits=logits)
         if action is None:
             action = probs.sample()
@@ -250,8 +250,8 @@ if __name__ == "__main__":
                 mb_inds = b_inds[start:end]
 
                 _, newlogprob, entropy, newvalue = agent.get_action_and_value(b_obs[mb_inds], b_actions.long()[mb_inds])
-                logratio = newlogprob - b_logprobs[mb_inds]
-                ratio = logratio.exp()
+                logratio = newlogprob - b_logprobs[mb_inds] # 输出动作的 对数概率 之差
+                ratio = logratio.exp() # 对数概率之差 再取底 ，ratio越接近 1 对数概率之差越小
 
                 with torch.no_grad():
                     # calculate approx_kl http://joschu.net/blog/kl-approx.html
@@ -265,7 +265,7 @@ if __name__ == "__main__":
 
                 # Policy loss
                 pg_loss1 = -mb_advantages * ratio
-                pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - args.clip_coef, 1 + args.clip_coef)
+                pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - args.clip_coef, 1 + args.clip_coef) 
                 pg_loss = torch.max(pg_loss1, pg_loss2).mean()
 
                 # Value loss
@@ -299,16 +299,27 @@ if __name__ == "__main__":
         explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 
         # TRY NOT TO MODIFY: record rewards for plotting purposes
-        writer.add_scalar("charts/learning_rate", optimizer.param_groups[0]["lr"], global_step)
-        writer.add_scalar("losses/value_loss", v_loss.item(), global_step)
+        writer.add_scalar("charts/learning_rate", optimizer.param_groups[0]["lr"], global_step) # 学习率，不退火的话，则稳定，退火则下降
+        writer.add_scalar("losses/value_loss", v_loss.item(), global_step) 
+        # 新的value 与 return 之间的均方误差平均值，（涉及clip）
+        # return 是 value + advantage， 其中value 是旧的value即采样时动作对应的value ， 
+        # advantage由 实际奖励，下一时刻的value，当前的value，之前的优势值，以及当前是否结束组成
+
         writer.add_scalar("losses/policy_loss", pg_loss.item(), global_step)
-        writer.add_scalar("losses/entropy", entropy_loss.item(), global_step)
+        writer.add_scalar("losses/entropy", entropy_loss.item(), global_step)  # 每轮更新时模型输出 动作分布的概率的熵 的平均值 ， 熵代表不确定性，熵越小说明模型越确定
         writer.add_scalar("losses/old_approx_kl", old_approx_kl.item(), global_step)
         writer.add_scalar("losses/approx_kl", approx_kl.item(), global_step)
-        writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
-        writer.add_scalar("losses/explained_variance", explained_var, global_step)
+
+        writer.add_scalar("losses/advantage", np.mean(b_advantages.cpu().numpy()), global_step)
+        writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step) 
+        #  输出动作的 对数概率 之差，再取底 为ratio，ratio越接近1，输出动作概率之差越小，clipfrac是指 1-abs(ratio) 小于 clip_coef的ratio的平均值
+        # 因为要对ratio裁剪到 1-clip_coef ， 1 + clip_coef之间
+        # 越稳定时，概率之差越小，ratio越接近于1， clipfrac越小
+        
+        
+        writer.add_scalar("losses/explained_variance", explained_var, global_step)  # 越接近1 说明 value预测的越准确
         print("SPS:", int(global_step / (time.time() - start_time)))
-        writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
+        writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step) # steps per second
 
     if args.save_model:
         model_path = f"runs/{run_name}/{args.exp_name}.cleanrl_model"
