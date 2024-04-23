@@ -13,7 +13,7 @@ COLORS = ['#FFFFFF', '#000000', '#6600CC', '#FF0000']
 gym.register(
     id="PathFinding-v0",
     entry_point="env:PathFindingEnv",
-    max_episode_steps=512,
+    max_episode_steps=64,
 )
 
 class PathFindingEnv(gym.Env):
